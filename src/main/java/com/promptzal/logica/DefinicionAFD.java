@@ -52,7 +52,7 @@ public class DefinicionAFD {
         transicion("q5", "q5", "digito");
         transicion("q5", "q6", ".");
         transicion("q6", "q7", "digito");
-        transicion("q6", "q21", "otro (no digito)");
+        transicion("q6", "q21", "otro", "otro (no digito)");
         transicion("q7", "q7", "digito");
 
         //Rama: cadena
@@ -89,7 +89,7 @@ public class DefinicionAFD {
         transicion("q15", "q15", "otro");
         transicion("q15", "q16", "salto de linea");
         transicion("q15", "q16", "fin archivo");
-        transicion("q17", "q17", "otro (no *)");
+        transicion("q17", "q17", "otro", "otro (no *)");
         transicion("q17", "q22", "*");
         transicion("q17", "q19", "fin archivo");
         transicion("q22", "q18", "/");
@@ -111,11 +111,45 @@ public class DefinicionAFD {
         transiciones.add(new Transicion(origen, destino, simbolo));
     }
 
+    private void transicion(String origen, String destino, String simbolo, String etiqueta) {
+        transiciones.add(new Transicion(origen, destino, simbolo, etiqueta));
+    }
+
     public List<Estado> getEstados() {
         return estados;
     }
 
     public List<Transicion> getTransiciones() {
         return transiciones;
+    }
+    
+    //Devuelve la transicion que corresponde a (estado, caracter), o null si no hay.
+    //c = -1 representa el fin del archivo.
+    //Primero busca simbolos especificos (el caracter exacto o una categoria)
+    //y solo si ninguno coincide cae en "otro".
+    public Transicion mover(String estado, int c) {
+        Transicion porDefecto = null;
+        for (Transicion t : transiciones) {
+            if (!t.getOrigen().equals(estado)) {
+                continue;
+            }       
+            if (t.getSimbolo().equals("otro")) {
+                porDefecto = t;
+            } else if (coincide(t.getSimbolo(), c)) {
+                return t;
+            }
+        }
+        return porDefecto;
+    }
+
+    private boolean coincide(String simbolo, int c) {
+        switch (simbolo) {
+            case "digito":         return c >= 0 && Character.isDigit(c);
+            case "letra":          return c >= 0 && (Character.isLetter(c) || c == '_');
+            case "letra/digito":   return c >= 0 && (Character.isLetterOrDigit(c) || c == '_');
+            case "salto de linea": return c == '\n';
+            case "fin archivo":    return c == -1;
+            default:               return simbolo.length() == 1 && c == simbolo.charAt(0);
+        }
     }
 }
