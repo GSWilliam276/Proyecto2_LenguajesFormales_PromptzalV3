@@ -6,51 +6,21 @@ digraph AFD_PromptZal {
     inicio [shape=point];
     inicio -> q0;
 
-    q0 [shape=circle];
-
+    q0 [shape=circle, label="q0"];
     q1 [shape=doublecircle, label="q1\nSIMBOLO"];
-    q0 -> q1 [label="="];
-    q0 -> q1 [label="+"];
-    q0 -> q1 [label="{"];
-    q0 -> q1 [label="}"];
-    q0 -> q1 [label="("];
-    q0 -> q1 [label=")"];
-    q0 -> q1 [label=","];
-
     q2 [shape=circle, label="q2\ndecidiendo"];
     q3 [shape=doublecircle, label="q3\nCONECTOR"];
     q4 [shape=circle, style=filled, fillcolor=red, label="q4\nERROR"];
-    q0 -> q2 [label="-"];
-    q2 -> q3 [label=">"];
-    q2 -> q4 [label="otro"];
-
     q5 [shape=doublecircle, label="q5\nENTERO"];
     q6 [shape=circle, label="q6\ntransito"];
     q7 [shape=doublecircle, label="q7\nDECIMAL"];
     q21 [shape=circle, style=filled, fillcolor=red, label="q21\nERROR"];
-    q0 -> q5 [label="digito"];
-    q5 -> q5 [label="digito"];
-    q5 -> q6 [label="."];
-    q6 -> q7 [label="digito"];
-    q6 -> q21 [label="otro (no digito)"];
-    q7 -> q7 [label="digito"];
-
     q8 [shape=circle, label="q8\nacumulando"];
     q9 [shape=doublecircle, label="q9\nCADENA"];
     q10 [shape=circle, style=filled, fillcolor=red, label="q10\nERROR"];
-    q0 -> q8 [label="\""];
-    q8 -> q8 [label="otro"];
-    q8 -> q9 [label="\""];
-    q8 -> q10 [label="salto de linea"];
-
     q11 [shape=circle, label="q11\nacumulando"];
     q12 [shape=doublecircle, label="q12\nDIRECTIVA"];
     q13 [shape=circle, style=filled, fillcolor=red, label="q13\nERROR"];
-    q0 -> q11 [label="@"];
-    q11 -> q11 [label="letra/digito"];
-    q11 -> q12 [label="valida"];
-    q11 -> q13 [label="no valida"];
-
     q14 [shape=circle, label="q14\ndecidiendo"];
     q15 [shape=circle, label="q15\nmodo linea"];
     q16 [shape=doublecircle, style=filled, fillcolor=lightblue, label="q16\nsin token"];
@@ -59,6 +29,32 @@ digraph AFD_PromptZal {
     q19 [shape=circle, style=filled, fillcolor=red, label="q19\nERROR"];
     q22 [shape=circle, label="q22\nposible cierre"];
     q23 [shape=circle, style=filled, fillcolor=red, label="q23\nERROR"];
+    q20 [shape=doublecircle, label="q20\nID/RESERVADA"];
+
+    q0 -> q1 [label="="];
+    q0 -> q1 [label="+"];
+    q0 -> q1 [label="{"];
+    q0 -> q1 [label="}"];
+    q0 -> q1 [label="("];
+    q0 -> q1 [label=")"];
+    q0 -> q1 [label=","];
+    q0 -> q2 [label="-"];
+    q2 -> q3 [label=">"];
+    q2 -> q4 [label="otro"];
+    q0 -> q5 [label="digito"];
+    q5 -> q5 [label="digito"];
+    q5 -> q6 [label="."];
+    q6 -> q7 [label="digito"];
+    q6 -> q21 [label="otro (no digito)"];
+    q7 -> q7 [label="digito"];
+    q0 -> q8 [label="\""];
+    q8 -> q8 [label="otro"];
+    q8 -> q9 [label="\""];
+    q8 -> q10 [label="salto de linea"];
+    q0 -> q11 [label="@"];
+    q11 -> q11 [label="letra/digito"];
+    q11 -> q12 [label="valida"];
+    q11 -> q13 [label="no valida"];
     q0 -> q14 [label="/"];
     q14 -> q15 [label="/"];
     q14 -> q17 [label="*"];
@@ -73,9 +69,6 @@ digraph AFD_PromptZal {
     q22 -> q22 [label="*"];
     q22 -> q17 [label="otro"];
     q22 -> q19 [label="fin archivo"];
-
-    q20 [shape=doublecircle, label="q20\nID/RESERVADA"];
     q0 -> q20 [label="letra"];
     q20 -> q20 [label="letra/digito"];
-
 }
