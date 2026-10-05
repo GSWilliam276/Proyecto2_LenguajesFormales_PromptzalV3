@@ -69,10 +69,11 @@ public class DefinicionAFD {
         //Rama: directiva
         estado("q11", "acumulando", TipoEstado.TRANSITO);
         estado("q12", "DIRECTIVA", TipoEstado.ACEPTACION);
-        estado("q13", "ERROR", TipoEstado.ERROR);
-        transicion("q0", "q11", "@");
+        estadoError("q13", "Directiva no reconocida");
+        transicionSinGuardar("q0", "q11", "@");
         transicion("q11", "q11", "letra/digito");
-        transicion("q11", "q12", "valida");
+        transicion("q11", "q12", "otro", "otro (valida)");
+        transicion("q11", "q12", "fin archivo", "fin archivo (valida)");
         transicion("q11", "q13", "no valida");
 
         //Rama: comentario (linea y bloque comparten el punto de decision)

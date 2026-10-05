@@ -12,9 +12,10 @@ import com.promptzal.modelo.Estado;
 import com.promptzal.modelo.TipoEstado;
 import com.promptzal.modelo.Transicion;
 /**
- * Analizador lexico manual para PromptZal.
- * Cada metodo esta comentado con su correspondencia exacta al AFD
- * formal disenado en recursos/afd/afd.dot (estados q0 a q19).
+ * Analizador lexico de PromptZal guiado por el AFD.
+ * El AFD vive como datos en DefinicionAFD (estados q0 a q24), de ahi sale
+ * tambien el codigo DOT. Este analizador solo recorre esa definicion:
+ * reconocer() es el motor y analizar() representa el estado inicial q0.
  *
  * @author eduar
  */
@@ -58,12 +59,6 @@ public class AnalizadorLexico {
         posicion++;
     }
 
-    //Determina si un caracter puede formar parte de una palabra (identificador,
-    //palabra reservada, comando o conector)
-    private boolean esCaracterDePalabra(char c) {
-        return Character.isLetterOrDigit(c) || c == '_';
-    }
-
     private String clasificarPalabra(String palabra) {
         //Respeta el orden de prioridad
         if (contiene(PALABRAS_RESERVADAS, palabra)) {
@@ -87,75 +82,26 @@ public class AnalizadorLexico {
         }
         return false;
     }
-    
-    //Rama directiva. AFD: q0 --@--> q11 (transito) --letra/digito--> q11 (lazo)
-    //Al salir del lazo: q11 --valida--> q12 (aceptacion: token DIRECTIVA)
-    //                    q11 --no valida--> q13 (estado de error)
-    //La validacion contra {modelo, rol, formato} se resuelve "al vuelo"
-    //con esDirectivaValida(), no es una transicion por simbolo del AFD.
-    private void leerDirectiva() {
-        int filaInicio = fila;
-        int columnaInicio = columna;
-        StringBuilder directiva = new StringBuilder();
-    
-        avanzar(); //Se salta el simbolo @, no se guarda como parte del contenido
-    
-        while (posicion < texto.length() && esCaracterDePalabra(texto.charAt(posicion))) {
-            directiva.append(texto.charAt(posicion));
-            avanzar();
-        }
-    
-        String lexema = directiva.toString();
-    
-        //Si no es una directiva valida (incluyendo el caso de quedar vacia),
-        //se reporta como error lexico en vez de generar un token
-        if (!esDirectivaValida(lexema)) {
-            ErrorLexico error = new ErrorLexico("@" + lexema, "Directiva no reconocida", filaInicio, columnaInicio);
-            listaErrores.add(error);
-            return;
-        }
-    
-        contadorTokens++;
-        Token token = new Token(contadorTokens, lexema, "DIRECTIVA", filaInicio, columnaInicio);
-        listaTokens.add(token);
-    }
 
     private boolean esDirectivaValida(String directiva) {
         String[] directivasValidas = {"modelo", "rol", "formato"};
         return contiene(directivasValidas, directiva);
     }
     
-    //Dispatcher principal: representa el estado inicial q0 del AFD completo.
-    //Cada rama de este if/else es la transicion que sale de q0 segun el
-    //primer caracter leido, delegando el resto del recorrido al metodo
-    //correspondiente (ver comentarios de cada uno para sus estados internos).
+    //Despachador principal: representa el estado inicial q0 del AFD.
+    //Salta los espacios en blanco; si q0 tiene transicion para el caracter actual,
+    //arranca el motor (reconocer); si no la tiene, reporta caracter no reconocido.
     public void analizar() {
         while (posicion < texto.length()) {
             char actual = texto.charAt(posicion);
 
             if (actual == ' ' || actual == '\t' || actual == '\r' || actual == '\n') {
-                //Espacios en blanco y saltos de linea se ignoran, solo se avanza
                 avanzar();
-            } else if (Character.isLetter(actual) || actual == '_') {
-                reconocer(); //Para Leer Palabra
-            } else if (actual == '@') {
-                leerDirectiva();
-            } else if (actual == '"') {
-                reconocer(); //Para Leer Cadena
-            } else if (Character.isDigit(actual)) {
-                reconocer();
-            } else if (actual == '/') {
-                reconocer();
-            } else if (actual == '-') { //Para Conector Flecha
-                reconocer();
-            } else if (actual == '=' || actual == '+' || actual == '{' || actual == '}' || actual == '(' || actual == ')' || actual == ',') {
-                reconocer(); //Para Simbolo Suelto
+            } else if (afd.mover("q0", actual) != null) {
+                reconocer(); //q0 tiene transicion para este caracter: arranca el motor
             } else {
-                //No encaja en ninguna categoria valida: caracter no reconocido
-                int filaError = fila;
-                int columnaError = columna;
-                ErrorLexico error = new ErrorLexico(String.valueOf(actual), "Caracter no reconocido", filaError, columnaError);
-                listaErrores.add(error);
+                //q0 no tiene transicion: caracter no reconocido
+                listaErrores.add(new ErrorLexico(String.valueOf(actual), "Caracter no reconocido", fila, columna));
                 avanzar();
             }
         }
@@ -190,9 +136,16 @@ public class AnalizadorLexico {
             }
             estado = t.getDestino();
         }
-
+        
         //El tipo del estado final decide el resultado
         Estado fin = afd.getEstado(estado);
+
+        //Directiva: la validacion contra {modelo, rol, formato} se hace sobre el lexema
+        //completo, igual que clasificarPalabra() en q20. Si no es valida, se va a q13.
+        if (fin.getEtiqueta().equals("DIRECTIVA") && !esDirectivaValida(lexema.toString())) {
+            fin = afd.getEstado("q13");
+            lexema.insert(0, "@"); //el error muestra la directiva completa, como antes
+        }
         switch (fin.getTipo()) {
             case ACEPTACION:
                 String tipo = fin.getEtiqueta();
