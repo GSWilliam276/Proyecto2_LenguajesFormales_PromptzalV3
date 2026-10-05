@@ -38,7 +38,7 @@ public class DefinicionAFD {
         //Rama: conector flecha
         estado("q2", "decidiendo", TipoEstado.TRANSITO);
         estado("q3", "CONECTOR", TipoEstado.ACEPTACION);
-        estado("q4", "ERROR", TipoEstado.ERROR);
+        estadoError("q4", "Caracter no reconocido");
         transicion("q0", "q2", "-");
         transicion("q2", "q3", ">");
         transicion("q2", "q4", "otro");

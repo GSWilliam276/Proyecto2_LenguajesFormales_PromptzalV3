@@ -46,14 +46,6 @@ public class AnalizadorLexico {
         this.listaErrores = new ArrayList<>();
     }
     
-    private char espiar() {
-        //Mira el caracter en la posicion siguiente
-        if (posicion + 1 < texto.length()) {
-            return texto.charAt(posicion + 1);
-        }
-        return '\0'; //Caracter nulo, indica que no hay siguiente caracter
-    }
-    
     private void avanzar() {
         //Mueve el puntero una posicion hacia adelante, actualiza fila/columna 
         //correctamente segun lo que se acaba de dejar atras
@@ -215,8 +207,8 @@ public class AnalizadorLexico {
                 reconocer();
             } else if (actual == '/') {
                 reconocer();
-            } else if (actual == '-') {
-                leerConectorFlecha();
+            } else if (actual == '-') { //Para Conector Flecha
+                reconocer();
             } else if (actual == '=' || actual == '+' || actual == '{' || actual == '}' || actual == '(' || actual == ')' || actual == ',') {
                 leerSimboloSuelto(actual);
             } else {
@@ -227,27 +219,6 @@ public class AnalizadorLexico {
                 listaErrores.add(error);
                 avanzar();
             }
-        }
-    }
-    
-    //Rama conector flecha. AFD: q0 --guion--> q2 (transito, decidiendo)
-    //q2 --mayor que--> q3 (aceptacion: token CONECTOR "->")
-    //q2 --otro caracter--> q4 (estado de error: "Caracter no reconocido")
-    private void leerConectorFlecha() {
-        //Maneja el caso de -, que puede ser -> o error
-        int filaInicio = fila;
-        int columnaInicio = columna;
-
-        if (espiar() == '>') {
-            avanzar(); // salta el -
-            avanzar(); // salta el >
-            contadorTokens++;
-            Token token = new Token(contadorTokens, "->", "CONECTOR", filaInicio, columnaInicio);
-            listaTokens.add(token);
-        } else {
-            ErrorLexico error = new ErrorLexico("-", "Caracter no reconocido", filaInicio, columnaInicio);
-            listaErrores.add(error);
-            avanzar();
         }
     }
     
