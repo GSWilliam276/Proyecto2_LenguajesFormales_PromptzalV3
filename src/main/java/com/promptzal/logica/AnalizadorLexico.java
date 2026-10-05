@@ -57,29 +57,6 @@ public class AnalizadorLexico {
         }
         posicion++;
     }
-    
-    //Rama identificador / palabra reservada / comando / conector de palabra.
-    //AFD: q0 --letra--> q_id (estado de aceptacion, tipo decidido al vuelo
-    //por clasificarPalabra). El lazo q_id --letra/digito--> q_id corresponde
-    //al while de abajo.
-    private void leerPalabra() {
-        int filaInicio = fila;
-        int columnaInicio = columna;
-        StringBuilder palabra = new StringBuilder();
-
-        //Mientras el caracter actual sea letra, digito o guion bajo, se sigue acumulando
-        while (posicion < texto.length() && esCaracterDePalabra(texto.charAt(posicion))) {
-            palabra.append(texto.charAt(posicion));
-            avanzar();
-        }
-
-        String lexema = palabra.toString();
-        String tipo = clasificarPalabra(lexema);
-
-        contadorTokens++;
-        Token token = new Token(contadorTokens, lexema, tipo, filaInicio, columnaInicio);
-        listaTokens.add(token);
-    }
 
     //Determina si un caracter puede formar parte de una palabra (identificador,
     //palabra reservada, comando o conector)
@@ -198,7 +175,7 @@ public class AnalizadorLexico {
                 //Espacios en blanco y saltos de linea se ignoran, solo se avanza
                 avanzar();
             } else if (Character.isLetter(actual) || actual == '_') {
-                leerPalabra();
+                reconocer(); //Para Leer Palabra
             } else if (actual == '@') {
                 leerDirectiva();
             } else if (actual == '"') {
@@ -252,8 +229,12 @@ public class AnalizadorLexico {
         Estado fin = afd.getEstado(estado);
         switch (fin.getTipo()) {
             case ACEPTACION:
+                String tipo = fin.getEtiqueta();
+                if (tipo.equals("ID/RESERVADA")) {
+                    tipo = clasificarPalabra(lexema.toString());
+                }
                 contadorTokens++;
-                listaTokens.add(new Token(contadorTokens, lexema.toString(), fin.getEtiqueta(), filaInicio, columnaInicio));
+                listaTokens.add(new Token(contadorTokens, lexema.toString(), tipo, filaInicio, columnaInicio));
                 break;
             case ERROR:
                 listaErrores.add(new ErrorLexico(lexema.toString(), fin.getMensaje(), filaInicio, columnaInicio));
