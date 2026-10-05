@@ -26,14 +26,15 @@ public class DefinicionAFD {
         estado("q0", "", TipoEstado.TRANSITO);
 
         //Rama: simbolo suelto
-        estado("q1", "SIMBOLO", TipoEstado.ACEPTACION);
+        estado("q1", "OPERADOR", TipoEstado.ACEPTACION);
+        estado("q24", "DELIMITADOR", TipoEstado.ACEPTACION);
         transicion("q0", "q1", "=");
         transicion("q0", "q1", "+");
-        transicion("q0", "q1", "{");
-        transicion("q0", "q1", "}");
-        transicion("q0", "q1", "(");
-        transicion("q0", "q1", ")");
-        transicion("q0", "q1", ",");
+        transicion("q0", "q24", "{");
+        transicion("q0", "q24", "}");
+        transicion("q0", "q24", "(");
+        transicion("q0", "q24", ")");
+        transicion("q0", "q24", ",");
 
         //Rama: conector flecha
         estado("q2", "decidiendo", TipoEstado.TRANSITO);

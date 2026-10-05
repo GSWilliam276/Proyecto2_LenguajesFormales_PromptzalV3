@@ -210,7 +210,7 @@ public class AnalizadorLexico {
             } else if (actual == '-') { //Para Conector Flecha
                 reconocer();
             } else if (actual == '=' || actual == '+' || actual == '{' || actual == '}' || actual == '(' || actual == ')' || actual == ',') {
-                leerSimboloSuelto(actual);
+                reconocer(); //Para Simbolo Suelto
             } else {
                 //No encaja en ninguna categoria valida: caracter no reconocido
                 int filaError = fila;
@@ -220,22 +220,6 @@ public class AnalizadorLexico {
                 avanzar();
             }
         }
-    }
-    
-    //Rama simbolo suelto. AFD: q0 --(=,+,{,},(,),,)--> q1 (aceptacion unica,
-    //compartida por los siete simbolos). Sin lazo, sin acumulacion: la
-    //clasificacion OPERADOR/DELIMITADOR se decide al vuelo segun cual
-    //simbolo especifico disparo la transicion.
-    private void leerSimboloSuelto(char simbolo) {
-        //Maneja los simbolos de un solo caracter
-        int filaInicio = fila;
-        int columnaInicio = columna;
-        String tipo = (simbolo == '=' || simbolo == '+') ? "OPERADOR" : "DELIMITADOR";
-
-        avanzar();
-        contadorTokens++;
-        Token token = new Token(contadorTokens, String.valueOf(simbolo), tipo, filaInicio, columnaInicio);
-        listaTokens.add(token);
     }
     
     //Motor: recorre el AFD consultando DefinicionAFD en cada caracter.
