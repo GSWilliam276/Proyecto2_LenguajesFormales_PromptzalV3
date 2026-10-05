@@ -88,44 +88,6 @@ public class AnalizadorLexico {
         return false;
     }
     
-    //Rama cadena. AFD: q0 --"--> q8 (transito, NO aceptacion) --otro--> q8 (lazo)
-    //q8 --"--> q9 (aceptacion: token CADENA)
-    //q8 --salto de linea--> q10 (estado de error: "Cadena sin cerrar")
-    private void leerCadena() {
-        int filaInicio = fila;
-        int columnaInicio = columna;
-        StringBuilder cadena = new StringBuilder();
-
-        avanzar(); //Se salta la comilla de apertura, no se guarda como parte del contenido
-
-        boolean cerrada = false;
-        while (posicion < texto.length()) {
-            char actual = texto.charAt(posicion);
-        
-            if (actual == '"') {
-                avanzar(); //Se salta la comilla de cierre tambien
-                cerrada = true;
-                break;
-            }
-            if (actual == '\n') {
-                //La cadena no puede cruzar un salto de linea sin cerrarse
-                break;
-            }
-        
-            cadena.append(actual);
-            avanzar();
-        }
-
-        if (cerrada) {
-            contadorTokens++;
-            Token token = new Token(contadorTokens, cadena.toString(), "CADENA", filaInicio, columnaInicio);
-            listaTokens.add(token);
-        } else {
-            ErrorLexico error = new ErrorLexico(cadena.toString(), "Cadena sin cerrar", filaInicio, columnaInicio);
-            listaErrores.add(error);
-        }
-    }
-    
     //Rama directiva. AFD: q0 --@--> q11 (transito) --letra/digito--> q11 (lazo)
     //Al salir del lazo: q11 --valida--> q12 (aceptacion: token DIRECTIVA)
     //                    q11 --no valida--> q13 (estado de error)
@@ -179,7 +141,7 @@ public class AnalizadorLexico {
             } else if (actual == '@') {
                 leerDirectiva();
             } else if (actual == '"') {
-                leerCadena();
+                reconocer(); //Para Leer Cadena
             } else if (Character.isDigit(actual)) {
                 reconocer();
             } else if (actual == '/') {
@@ -213,13 +175,17 @@ public class AnalizadorLexico {
                 break; //no hay camino: el estado actual decide que pasa
             }
 
-            //Regla de consumo: "otro" hacia aceptacion o error NO consume,
-            //porque ese caracter es del siguiente token. Tampoco se consume el fin de archivo.
+            //Regla de consumo: no se consume el fin de archivo, ninguna transicion
+            //hacia un estado de error (el caracter que la dispara es del siguiente
+            //token) y tampoco un "otro" hacia aceptacion.
             Estado destino = afd.getEstado(t.getDestino());
             boolean consume = c != -1
+                    && destino.getTipo() != TipoEstado.ERROR
                     && !(t.getSimbolo().equals("otro") && destino.getTipo() != TipoEstado.TRANSITO);
             if (consume) {
-                lexema.append((char) c);
+                if (t.isGuardar()) {
+                    lexema.append((char) c); //las comillas, por ejemplo, se consumen pero no se guardan
+                }
                 avanzar();
             }
             estado = t.getDestino();

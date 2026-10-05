@@ -59,11 +59,12 @@ public class DefinicionAFD {
         //Rama: cadena
         estado("q8", "acumulando", TipoEstado.TRANSITO);
         estado("q9", "CADENA", TipoEstado.ACEPTACION);
-        estado("q10", "ERROR", TipoEstado.ERROR);
-        transicion("q0", "q8", "\"");
+        estadoError("q10", "Cadena sin cerrar");
+        transicionSinGuardar("q0", "q8", "\"");
         transicion("q8", "q8", "otro");
-        transicion("q8", "q9", "\"");
+        transicionSinGuardar("q8", "q9", "\"");
         transicion("q8", "q10", "salto de linea");
+        transicion("q8", "q10", "fin archivo");
 
         //Rama: directiva
         estado("q11", "acumulando", TipoEstado.TRANSITO);
@@ -163,5 +164,9 @@ public class DefinicionAFD {
             if (e.getId().equals(id)) return e;
         }
         return null;
+    }
+    
+    private void transicionSinGuardar(String origen, String destino, String simbolo) {
+        transiciones.add(new Transicion(origen, destino, simbolo, simbolo, false));
     }
 }
