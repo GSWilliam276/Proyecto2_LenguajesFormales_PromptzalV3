@@ -8,6 +8,9 @@ import com.promptzal.modelo.Token;
 import com.promptzal.modelo.ErrorLexico;
 import java.util.ArrayList;
 import java.util.List;
+import com.promptzal.modelo.Estado;
+import com.promptzal.modelo.TipoEstado;
+import com.promptzal.modelo.Transicion;
 /**
  * Analizador lexico manual para PromptZal.
  * Cada metodo esta comentado con su correspondencia exacta al AFD
@@ -25,6 +28,7 @@ public class AnalizadorLexico {
 
     private List<Token> listaTokens;
     private List<ErrorLexico> listaErrores;
+    private final DefinicionAFD afd = new DefinicionAFD();
 
     //Listas de palabras conocidas, para clasificar contra ellas
     private static final String[] PALABRAS_RESERVADAS = {"AGENTE", "contexto", "variable", "EJECUTAR", "EXPORTAR"};
@@ -153,114 +157,6 @@ public class AnalizadorLexico {
         }
     }
     
-    //Rama numero (entero / decimal). AFD:
-    //q0 --digito--> q5 (aceptacion: ENTERO) --digito--> q5 (lazo)
-    //q5 --punto--> q6 (transito, NO aceptacion)
-    //q6 --digito--> q7 (aceptacion: DECIMAL) --digito--> q7 (lazo)
-    //q6 --otro (no digito o fin de archivo)--> q21 (estado de error)
-    private void leerNumero() {
-        int filaInicio = fila;
-        int columnaInicio = columna;
-        StringBuilder numero = new StringBuilder();
-        boolean esDecimal = false;
-        boolean errorEnPunto = false;
-
-        while (posicion < texto.length()) {
-            char actual = texto.charAt(posicion);
-
-            if (Character.isDigit(actual)) {
-                //Lazo q5 -> q5 (parte entera) o q7 -> q7 (parte decimal)
-                numero.append(actual);
-                avanzar();
-            } else if (actual == '.' && !esDecimal) {
-                //Transicion q5 -> q6. Solo se acepta el punto si aun no hay otro
-                //(si ya es decimal, un segundo punto corta el token y lo
-                //reporta el dispatcher como caracter no reconocido)
-                numero.append(actual);
-                avanzar();
-
-                //Estamos en q6: el siguiente caracter decide el camino
-                if (posicion < texto.length() && Character.isDigit(texto.charAt(posicion))) {
-                    //q6 --digito--> q7: ahora el numero es decimal
-                    esDecimal = true;
-                } else {
-                    //q6 --otro--> q21: despues del punto no hay digito
-                    //(incluye fin de archivo), el numero quedo a medias
-                    errorEnPunto = true;
-                    break;
-                }
-            } else {
-                //Cualquier otro caracter cierra el numero (aceptacion en q5 o q7)
-                break;
-            }
-        }
-
-        //Estado de error q21: se reporta el lexema acumulado (por ejemplo "12.")
-        if (errorEnPunto) {
-            ErrorLexico error = new ErrorLexico(numero.toString(), "Caracter no reconocido", filaInicio, columnaInicio);
-            listaErrores.add(error);
-            return;
-        }
-
-        //Estado de aceptacion: q5 produce ENTERO, q7 produce DECIMAL
-        String lexema = numero.toString();
-        String tipo = esDecimal ? "DECIMAL" : "ENTERO";
-
-        contadorTokens++;
-        Token token = new Token(contadorTokens, lexema, tipo, filaInicio, columnaInicio);
-        listaTokens.add(token);
-    }
-    
-    //Rama comentario. AFD: q0 --/--> q14 (transito, decidiendo).
-    //Linea: q14 --/--> q15 (transito) --otro--> q15 (lazo) --salto de linea o
-    //        fin de archivo--> q16 (aceptacion SIN token, celeste).
-    //Bloque: q14 --*--> q17 (transito) --otro (no *)--> q17 (lazo)
-    //        q17 --*--> q22 (posible cierre) --/--> q18 (aceptacion SIN token)
-    //        q22 --*--> q22 (lazo), q22 --otro--> q17 (vuelve al bloque)
-    //        si el archivo termina en q17 o q22 --> q19 (estado de error)
-    //Otro: q14 --otro--> q23 (estado de error: la barra sola no es valida)
-    private void leerComentario() {
-        int filaInicio = fila;
-        int columnaInicio = columna;
-
-        avanzar(); //Se salta la primera barra "/" (q0 -> q14)
-        //Si el archivo termino justo despues de la barra, no hay siguiente caracter
-        char siguiente = (posicion < texto.length()) ? texto.charAt(posicion) : '\0';
-
-        if (siguiente == '/') {
-            //q14 -> q15: comentario de linea, se salta todo hasta el salto de linea
-            //o el fin del archivo (q15 -> q16)
-            avanzar(); //se salta la segunda barra
-            while (posicion < texto.length() && texto.charAt(posicion) != '\n') {
-                avanzar();
-            }
-        } else if (siguiente == '*') {
-            //q14 -> q17: comentario de bloque, se salta todo hasta encontrar */
-            avanzar(); //Se salta el asterisco
-            boolean cerrado = false;
-            while (posicion < texto.length()) {
-                //Estamos en q17. Un * nos lleva a q22 y ahi decide la siguiente barra
-                if (texto.charAt(posicion) == '*' && espiar() == '/') {
-                    avanzar(); //salta el * (q17 -> q22)
-                    avanzar(); //salta el / (q22 -> q18)
-                    cerrado = true;
-                    break;
-                }
-                avanzar();
-            }
-            if (!cerrado) {
-                //q17 o q22 --fin de archivo--> q19
-                ErrorLexico error = new ErrorLexico("/*", "Comentario de bloque sin cerrar", filaInicio, columnaInicio);
-                listaErrores.add(error);
-            }
-        } else {
-            //q14 --otro--> q23: la barra sola no pertenece al lenguaje.
-            //No se consume el caracter siguiente: lo procesara analizar()
-            ErrorLexico error = new ErrorLexico("/", "Caracter no reconocido", filaInicio, columnaInicio);
-            listaErrores.add(error);
-        }
-    }
-    
     //Rama directiva. AFD: q0 --@--> q11 (transito) --letra/digito--> q11 (lazo)
     //Al salir del lazo: q11 --valida--> q12 (aceptacion: token DIRECTIVA)
     //                    q11 --no valida--> q13 (estado de error)
@@ -316,9 +212,9 @@ public class AnalizadorLexico {
             } else if (actual == '"') {
                 leerCadena();
             } else if (Character.isDigit(actual)) {
-                leerNumero();
+                reconocer();
             } else if (actual == '/') {
-                leerComentario();
+                reconocer();
             } else if (actual == '-') {
                 leerConectorFlecha();
             } else if (actual == '=' || actual == '+' || actual == '{' || actual == '}' || actual == '(' || actual == ')' || actual == ',') {
@@ -371,6 +267,46 @@ public class AnalizadorLexico {
         listaTokens.add(token);
     }
     
+    //Motor: recorre el AFD consultando DefinicionAFD en cada caracter.
+    private void reconocer() {
+        int filaInicio = fila;
+        int columnaInicio = columna;
+        StringBuilder lexema = new StringBuilder();
+        String estado = "q0";
+
+        while (true) {
+            int c = (posicion < texto.length()) ? texto.charAt(posicion) : -1;
+            Transicion t = afd.mover(estado, c);
+            if (t == null) {
+                break; //no hay camino: el estado actual decide que pasa
+            }
+
+            //Regla de consumo: "otro" hacia aceptacion o error NO consume,
+            //porque ese caracter es del siguiente token. Tampoco se consume el fin de archivo.
+            Estado destino = afd.getEstado(t.getDestino());
+            boolean consume = c != -1
+                    && !(t.getSimbolo().equals("otro") && destino.getTipo() != TipoEstado.TRANSITO);
+            if (consume) {
+                lexema.append((char) c);
+                avanzar();
+            }
+            estado = t.getDestino();
+        }
+
+        //El tipo del estado final decide el resultado
+        Estado fin = afd.getEstado(estado);
+        switch (fin.getTipo()) {
+            case ACEPTACION:
+                contadorTokens++;
+                listaTokens.add(new Token(contadorTokens, lexema.toString(), fin.getEtiqueta(), filaInicio, columnaInicio));
+                break;
+            case ERROR:
+                listaErrores.add(new ErrorLexico(lexema.toString(), fin.getMensaje(), filaInicio, columnaInicio));
+                break;
+            default:
+                break; //aceptacion sin token (comentario): se descarta
+        }
+    }
     
     //Getters
     public List<Token> getListaTokens() {

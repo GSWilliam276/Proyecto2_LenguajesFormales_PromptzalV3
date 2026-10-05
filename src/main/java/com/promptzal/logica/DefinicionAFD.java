@@ -47,7 +47,7 @@ public class DefinicionAFD {
         estado("q5", "ENTERO", TipoEstado.ACEPTACION);
         estado("q6", "transito", TipoEstado.TRANSITO);
         estado("q7", "DECIMAL", TipoEstado.ACEPTACION);
-        estado("q21", "ERROR", TipoEstado.ERROR);
+        estadoError("q21", "Caracter no reconocido");
         transicion("q0", "q5", "digito");
         transicion("q5", "q5", "digito");
         transicion("q5", "q6", ".");
@@ -79,9 +79,9 @@ public class DefinicionAFD {
         estado("q16", "sin token", TipoEstado.ACEPTACION_SIN_TOKEN);
         estado("q17", "modo bloque", TipoEstado.TRANSITO);
         estado("q18", "sin token", TipoEstado.ACEPTACION_SIN_TOKEN);
-        estado("q19", "ERROR", TipoEstado.ERROR);
+        estadoError("q19", "Comentario de bloque sin cerrar");
         estado("q22", "posible cierre", TipoEstado.TRANSITO);
-        estado("q23", "ERROR", TipoEstado.ERROR);
+        estadoError("q23", "Caracter no reconocido");
         transicion("q0", "q14", "/");
         transicion("q14", "q15", "/");
         transicion("q14", "q17", "*");
@@ -151,5 +151,16 @@ public class DefinicionAFD {
             case "fin archivo":    return c == -1;
             default:               return simbolo.length() == 1 && c == simbolo.charAt(0);
         }
+    }
+    
+    private void estadoError(String id, String mensaje) {
+        estados.add(new Estado(id, "ERROR", TipoEstado.ERROR, mensaje));
+    }
+
+    public Estado getEstado(String id) {
+        for (Estado e : estados) {
+            if (e.getId().equals(id)) return e;
+        }
+        return null;
     }
 }
