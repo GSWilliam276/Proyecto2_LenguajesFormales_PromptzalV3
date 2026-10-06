@@ -25,6 +25,9 @@ public class DefinicionAFD {
     public DefinicionAFD() {
         estado("q0", "", TipoEstado.TRANSITO);
 
+        //q0: lazo para espacios, tabulaciones y saltos de linea (se ignoran, no producen token)
+        transicion("q0", "q0", "espacio", "espacio / tab / salto de linea");
+
         //Rama: simbolo suelto
         estado("q1", "OPERADOR", TipoEstado.ACEPTACION);
         estado("q24", "DELIMITADOR", TipoEstado.ACEPTACION);
@@ -152,6 +155,7 @@ public class DefinicionAFD {
             case "letra/digito":   return c >= 0 && (Character.isLetterOrDigit(c) || c == '_');
             case "salto de linea": return c == '\n';
             case "fin archivo":    return c == -1;
+            case "espacio": return c == ' ' || c == '\t' || c == '\r' || c == '\n';
             default:               return simbolo.length() == 1 && c == simbolo.charAt(0);
         }
     }

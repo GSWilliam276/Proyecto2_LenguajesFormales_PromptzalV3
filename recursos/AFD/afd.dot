@@ -32,6 +32,7 @@ digraph AFD_PromptZal {
     q23 [shape=circle, style=filled, fillcolor=red, label="q23\nERROR"];
     q20 [shape=doublecircle, label="q20\nID/RESERVADA"];
 
+    q0 -> q0 [label="espacio"];
     q0 -> q1 [label="="];
     q0 -> q1 [label="+"];
     q0 -> q24 [label="{"];
@@ -52,9 +53,11 @@ digraph AFD_PromptZal {
     q8 -> q8 [label="otro"];
     q8 -> q9 [label="\""];
     q8 -> q10 [label="salto de linea"];
+    q8 -> q10 [label="fin archivo"];
     q0 -> q11 [label="@"];
     q11 -> q11 [label="letra/digito"];
-    q11 -> q12 [label="valida"];
+    q11 -> q12 [label="otro"];
+    q11 -> q12 [label="fin archivo"];
     q11 -> q13 [label="no valida"];
     q0 -> q14 [label="/"];
     q14 -> q15 [label="/"];

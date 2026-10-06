@@ -95,10 +95,8 @@ public class AnalizadorLexico {
         while (posicion < texto.length()) {
             char actual = texto.charAt(posicion);
 
-            if (actual == ' ' || actual == '\t' || actual == '\r' || actual == '\n') {
-                avanzar();
-            } else if (afd.mover("q0", actual) != null) {
-                reconocer(); //q0 tiene transicion para este caracter: arranca el motor
+            if (afd.mover("q0", actual) != null) {
+                reconocer();
             } else {
                 //q0 no tiene transicion: caracter no reconocido
                 listaErrores.add(new ErrorLexico(String.valueOf(actual), "Caracter no reconocido", fila, columna));
@@ -133,6 +131,13 @@ public class AnalizadorLexico {
                     lexema.append((char) c); //las comillas, por ejemplo, se consumen pero no se guardan
                 }
                 avanzar();
+            }
+            //Volver a q0 significa empezar de nuevo: lo acumulado se descarta y
+            //la posicion de inicio del siguiente token es la actual
+            if (t.getDestino().equals("q0")) {
+                lexema.setLength(0);
+                filaInicio = fila;
+                columnaInicio = columna;
             }
             estado = t.getDestino();
         }
