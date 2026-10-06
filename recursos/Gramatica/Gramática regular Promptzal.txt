@@ -1,65 +1,98 @@
 Gramática regular — Analizador léxico PromptZal
 
-Cada producción corresponde al AFD diseñado para esa misma categoría de token (ver recursos/afd/afd.dot y afd.png). La notación sigue el formato visto en clase: A → aB o A → a, donde las minúsculas son terminales (símbolos del alfabeto de entrada) y los símbolos entre < > son no terminales.
+Cada producción corresponde al AFD de recursos/afd (generado desde DefinicionAFD).
+Formato: <A> → a <B> o <A> → a. Las minúsculas son terminales y los símbolos
+entre < > son no terminales. Cada producción lleva un solo terminal.
 
-Convenciones usadas:
+Convenciones:
+l = letra (a-z, A-Z y las que Java reconoce como letra, como la ñ) o guion bajo
+d = dígito (0-9)
+w = espacio, tabulación, \r o \n
+c = cualquier carácter permitido en esa posición (se detalla en cada caso)
 
-l = una letra cualquiera (a-z, A-Z)
-d = un dígito cualquiera (0-9)
-c = cualquier carácter del alfabeto excepto los símbolos que cierran explícitamente esa categoría (se detalla en cada caso)
+Los estados de error (q4, q10, q13, q19, q21, q23) no aparecen: la gramática
+describe solo los lexemas válidos. La clasificación posterior (palabra reservada,
+comando, conector, validez de la directiva) se hace al aceptar, fuera de la gramática.
+
 1. Identificador / palabra reservada / comando / conector de palabra
+   Comparten el mismo AFD (q20). La clasificación en PALABRA_RESERVADA, COMANDO_IA,
+   CONECTOR o IDENTIFICADOR se decide al aceptar, consultando una tabla una vez
+   terminada la acumulación, no dentro de la gramática misma.
+   <PALABRA>       → l <RESTO_PALABRA>
+   <PALABRA>       → l
+   <RESTO_PALABRA> → l <RESTO_PALABRA>
+   <RESTO_PALABRA> → d <RESTO_PALABRA>
+   <RESTO_PALABRA> → l
+   <RESTO_PALABRA> → d
 
-Comparten el mismo AFD (método leerPalabra()); la clasificación en PALABRA_RESERVADA, COMANDO_IA, CONECTOR o IDENTIFICADOR se decide "al vuelo" consultando una tabla una vez terminada la acumulación, no dentro de la gramática misma.
+2. Operador (q1) y delimitador (q24)
+   <OPERADOR>      → =
+   <OPERADOR>      → +
+   <DELIMITADOR>   → {
+   <DELIMITADOR>   → }
+   <DELIMITADOR>   → (
+   <DELIMITADOR>   → )
+   <DELIMITADOR>   → ,
 
-<PALABRA> → l <PALABRA>
-<PALABRA> → l
-2. Símbolo de un carácter ( = + { } ( ) , )
-
-Sin lazo: se resuelve en un solo paso. La clasificación entre OPERADOR y DELIMITADOR también se decide al vuelo, según cuál símbolo fue.
-
-<SIMBOLO> → =
-<SIMBOLO> → +
-<SIMBOLO> → {
-<SIMBOLO> → }
-<SIMBOLO> → (
-<SIMBOLO> → )
-<SIMBOLO> → ,
 3. Conector flecha ->
+   <FLECHA>        → - <FLECHA_FIN>
+   <FLECHA_FIN>    → >
 
-Dos terminales fijos en secuencia, sin lazo ni pasos intermedios.
-
-<FLECHA> → - >
 4. Número (entero / decimal)
-<NUMERO> → d <NUMERO>
-<NUMERO> → d
-<NUMERO> → d . <FRAC>
-<FRAC>   → d <FRAC>
-<FRAC>   → d
-5. Cadena "..."
+   <NUMERO>        → d <ENTERO>
+   <NUMERO>        → d
+   <ENTERO>        → d <ENTERO>
+   <ENTERO>        → d
+   <ENTERO>        → . <FRAC_INICIO>
+   <FRAC_INICIO>   → d <FRAC>
+   <FRAC_INICIO>   → d
+   <FRAC>          → d <FRAC>
+   <FRAC>          → d
 
-c aquí = cualquier carácter distinto de " y de salto de línea.
+5. Cadena "..."   (c = cualquier carácter excepto " y salto de línea)
+   Las comillas no entran al lexema guardado: el motor las consume pero no las
+   acumula (transicionSinGuardar en DefinicionAFD).
+   <CADENA>             → " <CONTENIDO_CADENA>
+   <CONTENIDO_CADENA>   → c <CONTENIDO_CADENA>
+   <CONTENIDO_CADENA>   → "
 
-<CADENA>            → " <CONTENIDO_CADENA>
-<CONTENIDO_CADENA>  → c <CONTENIDO_CADENA>
-<CONTENIDO_CADENA>  → "
 6. Directiva (@modelo, @rol, @formato)
+   El cierre no usa un símbolo explícito: termina apenas deja de acumularse una
+   letra, dígito o guion bajo. La validación contra la lista de directivas
+   permitidas (modelo, rol, formato) se hace al aceptar, fuera de la gramática.
+   <DIRECTIVA>             → @ <CONTENIDO_DIRECTIVA>
+   <CONTENIDO_DIRECTIVA>   → l <CONTENIDO_DIRECTIVA>
+   <CONTENIDO_DIRECTIVA>   → d <CONTENIDO_DIRECTIVA>
+   <CONTENIDO_DIRECTIVA>   → l
+   <CONTENIDO_DIRECTIVA>   → d
 
-El cierre no usa un símbolo explícito: termina apenas deja de acumularse una letra/dígito/guion bajo. La validación contra la lista de directivas permitidas (modelo, rol, formato) se hace al vuelo, fuera de la gramática.
+7. Comentarios (no generan token). Comparten q14, igual que en el AFD.
+   cl = cualquier carácter excepto \n
+   cb = cualquier carácter excepto *
+   cp = cualquier carácter excepto * y /
 
-<DIRECTIVA>            → @ <CONTENIDO_DIRECTIVA>
-<CONTENIDO_DIRECTIVA>  → l <CONTENIDO_DIRECTIVA>
-<CONTENIDO_DIRECTIVA>  → l
-7. Comentario de línea //
+   <COMENTARIO>            → / <COMENTARIO_DECISION>
+   <COMENTARIO_DECISION>   → / <CONTENIDO_LINEA>
+   <COMENTARIO_DECISION>   → /
+   <COMENTARIO_DECISION>   → * <CONTENIDO_BLOQUE>
 
-No genera token; c = cualquier carácter distinto de salto de línea.
+   Línea (cierra con \n o con el fin de archivo; el fin de archivo no es un
+   carácter, por eso las alternativas que terminan sin \n):
+   <CONTENIDO_LINEA>       → cl <CONTENIDO_LINEA>
+   <CONTENIDO_LINEA>       → cl
+   <CONTENIDO_LINEA>       → \n
 
-<COMENTARIO_LINEA> → / / <CONTENIDO_LINEA>
-<CONTENIDO_LINEA>  → c <CONTENIDO_LINEA>
-<CONTENIDO_LINEA>  → \n
-8. Comentario de bloque /* */
+   Bloque (<POSIBLE_CIERRE> equivale a "acabo de ver un *", estado q22):
+   <CONTENIDO_BLOQUE>      → cb <CONTENIDO_BLOQUE>
+   <CONTENIDO_BLOQUE>      → * <POSIBLE_CIERRE>
+   <POSIBLE_CIERRE>        → /
+   <POSIBLE_CIERRE>        → * <POSIBLE_CIERRE>
+   <POSIBLE_CIERRE>        → cp <CONTENIDO_BLOQUE>
 
-No genera token; c = cualquier carácter que no forme parte de la secuencia de cierre */. Si el archivo termina sin encontrar */, esto ya no lo describe la gramática (que solo modela el lenguaje válido); ese caso lo maneja la recuperación de errores en el código Java, y se documenta aparte en el manual técnico.
+   Un comentario de bloque sin cerrar no lo describe la gramática (solo modela
+   el lenguaje válido); lo maneja el estado de error q19 y se documenta en el
+   manejo de errores del manual.
 
-<COMENTARIO_BLOQUE> → / * <CONTENIDO_BLOQUE>
-<CONTENIDO_BLOQUE>  → c <CONTENIDO_BLOQUE>
-<CONTENIDO_BLOQUE>  → * /
+8. Espacios en blanco (no generan token, lazo de q0)
+   <ESPACIO>       → w <ESPACIO>
+   <ESPACIO>       → w
