@@ -5,8 +5,11 @@
 package com.promptzal.app;
 
 import com.promptzal.logica.AnalizadorLexicoJFlex;
+import com.promptzal.logica.Parser;
 import com.promptzal.modelo.Token;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 /**
  *
  * @author eduar
@@ -29,11 +32,12 @@ public class PruebaJFlex {
         try {
             AnalizadorLexicoJFlex lexer = new AnalizadorLexicoJFlex(new StringReader(texto));
             Token t;
+            List<Token> tokens = new ArrayList<>();
             do {
                 t = lexer.siguienteToken();
-                System.out.println(t.getTipo() + " | " + t.getLexema()
-                        + " | " + t.getFila() + "," + t.getColumna());
+                tokens.add(t);
             } while (!t.getTipo().equals("EOF"));
+            Parser parser = new Parser(tokens);
 
             System.out.println("Errores: " + lexer.getErrores().size());
             lexer.getErrores().forEach(e ->
