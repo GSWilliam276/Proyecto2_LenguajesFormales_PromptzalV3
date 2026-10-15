@@ -4,6 +4,7 @@
  */
 package com.promptzal.app;
 
+import com.promptzal.ast.Programa;
 import com.promptzal.logica.AnalizadorLexicoJFlex;
 import com.promptzal.logica.Parser;
 import com.promptzal.modelo.Token;
@@ -26,8 +27,7 @@ public class PruebaJFlex {
                 + "    RESUMIR tendencias EN 100 palabras -> resumen\n"
                 + "}\n"
                 + "EJECUTAR analista\n"
-                + "EXPORTAR resumen\n"
-                + "12. 12.5 #\n";
+                + "EXPORTAR resumen\n";
 
         try {
             AnalizadorLexicoJFlex lexer = new AnalizadorLexicoJFlex(new StringReader(texto));
@@ -38,6 +38,12 @@ public class PruebaJFlex {
                 tokens.add(t);
             } while (!t.getTipo().equals("EOF"));
             Parser parser = new Parser(tokens);
+            Programa programa = parser.programa();
+            System.out.println("Directivas: " + programa.getDirectivas().size());
+            System.out.println("Agentes: " + programa.getAgentes().size());
+            System.out.println("Ejecuciones: " + programa.getEjecuciones().size());
+            System.out.println("Exportaciones: " + programa.getExportaciones().size());
+            System.out.println("Errores sintacticos: " + parser.getErrores().size());
 
             System.out.println("Errores: " + lexer.getErrores().size());
             lexer.getErrores().forEach(e ->

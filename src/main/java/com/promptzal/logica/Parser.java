@@ -15,6 +15,11 @@ import com.promptzal.ast.Expresion;
 import com.promptzal.ast.Termino;
 import com.promptzal.ast.Comando;
 import com.promptzal.ast.Conector;
+import com.promptzal.ast.Agente;
+import com.promptzal.ast.Variable;
+import com.promptzal.ast.Directiva;
+import com.promptzal.ast.Programa;
+import com.promptzal.ast.Referencia;
 /**
  *
  * @author eduar
@@ -164,6 +169,128 @@ public class Parser {
             c.agregarConector(con);
         }
         return c;
+    }
+    
+    //<contexto> -> CONTEXTO IGUAL CADENA
+    private String contexto() {
+        esperar(TipoToken.CONTEXTO);
+        esperar(TipoToken.IGUAL);
+        return esperar(TipoToken.CADENA).getLexema();
+    }
+
+    //<variables> -> VARIABLE ID IGUAL <expresion> <variables> | ε
+    //Cero o mas declaraciones: si el token actual es VARIABLE sigue; si no, es ε.
+    private void variables(Agente a) {
+        if (es(TipoToken.VARIABLE)) {
+            avanzar();
+            Token nombre = esperar(TipoToken.ID);
+            esperar(TipoToken.IGUAL);
+            Expresion valor = expresion();
+            a.agregarVariable(new Variable(nombre.getLexema(), valor,
+                    nombre.getFila(), nombre.getColumna()));
+            variables(a);
+        }
+    }
+
+    //<comandos> -> <comando> <mas_comandos>
+    //Al menos un comando: no hay alternativa vacia, comando() exige COMANDO_IA.
+    private void comandos(Agente a) {
+        a.agregarComando(comando());
+        masComandos(a);
+    }
+
+    //<mas_comandos> -> <comando> <mas_comandos> | ε
+    private void masComandos(Agente a) {
+        if (es(TipoToken.COMANDO_IA)) {
+            a.agregarComando(comando());
+            masComandos(a);
+        }
+    }
+
+    //<agente> -> AGENTE ID LLAVE_A <contexto> <variables> <comandos> LLAVE_C
+    private Agente agente() {
+        esperar(TipoToken.AGENTE);
+        Token nombre = esperar(TipoToken.ID);
+        esperar(TipoToken.LLAVE_A);
+
+        Agente a = new Agente(nombre.getLexema(), nombre.getFila());
+        a.setContexto(contexto());
+        variables(a);
+        comandos(a);
+
+        esperar(TipoToken.LLAVE_C);
+        return a;
+    }
+    
+    //<directivas> -> DIRECTIVA CADENA <directivas> | ε
+    private void directivas(Programa p) {
+        if (es(TipoToken.DIRECTIVA)) {
+            Token d = avanzar();
+            Token valor = esperar(TipoToken.CADENA);
+            p.agregarDirectiva(new Directiva(d.getLexema(), valor.getLexema(), d.getFila()));
+            directivas(p);
+        }
+    }
+
+    //<agentes> -> <agente> <mas_agentes>   (al menos un agente)
+    private void agentes(Programa p) {
+        p.agregarAgente(agente());
+        masAgentes(p);
+    }
+
+    //<mas_agentes> -> <agente> <mas_agentes> | ε
+    private void masAgentes(Programa p) {
+        if (es(TipoToken.AGENTE)) {
+            p.agregarAgente(agente());
+            masAgentes(p);
+        }
+    }
+
+    //<ejecuciones> -> EJECUTAR ID <mas_ejecuciones>   (al menos una)
+    private void ejecuciones(Programa p) {
+        esperar(TipoToken.EJECUTAR);
+        Token id = esperar(TipoToken.ID);
+        p.agregarEjecucion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+        masEjecuciones(p);
+    }
+
+    //<mas_ejecuciones> -> EJECUTAR ID <mas_ejecuciones> | ε
+    private void masEjecuciones(Programa p) {
+        if (es(TipoToken.EJECUTAR)) {
+            avanzar();
+            Token id = esperar(TipoToken.ID);
+            p.agregarEjecucion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+            masEjecuciones(p);
+        }
+    }
+
+    //<exportar> -> EXPORTAR ID <mas_ids>   (exactamente un EXPORTAR)
+    private void exportar(Programa p) {
+        esperar(TipoToken.EXPORTAR);
+        Token id = esperar(TipoToken.ID);
+        p.agregarExportacion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+        masIds(p);
+    }
+
+    //<mas_ids> -> COMA ID <mas_ids> | ε
+    private void masIds(Programa p) {
+        if (es(TipoToken.COMA)) {
+            avanzar();
+            Token id = esperar(TipoToken.ID);
+            p.agregarExportacion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+            masIds(p);
+        }
+    }
+
+    //<programa> -> <directivas> <agentes> <ejecuciones> <exportar> EOF
+    public Programa programa() {
+        Programa p = new Programa();
+        directivas(p);
+        agentes(p);
+        ejecuciones(p);
+        exportar(p);
+        esperar(TipoToken.EOF);
+        return p;
     }
 
     public List<ErrorSintactico> getErrores() {
