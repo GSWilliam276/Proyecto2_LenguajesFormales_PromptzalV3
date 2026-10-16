@@ -7,6 +7,7 @@ package com.promptzal.app;
 import com.promptzal.ast.Agente;
 import com.promptzal.ast.Programa;
 import com.promptzal.logica.AnalizadorLexicoJFlex;
+import com.promptzal.logica.AnalizadorSemantico;
 import com.promptzal.logica.Parser;
 import com.promptzal.modelo.Token;
 import java.io.StringReader;
@@ -19,19 +20,24 @@ import java.util.List;
 public class PruebaJFlex {
     public static void main(String[] args) {
         String texto = """
-                @modelo "x"
                 AGENTE a {
                     contexto = "c"
-                    
-                    variable w = "ok"
-                    
-                    RESUMIR w EN 100 palabras -> r
+                    variable v = "x"
+                    PREGUNTAR "p" SOBRE zzz -> r1
+                    GENERAR codigo DESDE v -> r2
+                    RESUMIR r1 EN 100 palabras -> r3
+                }
+                AGENTE a {
+                    contexto = "c"
+                    PREGUNTAR "p" -> r
                 }
                 EJECUTAR a
-                EXPORTAR r
+                EJECUTAR b
+                EXPORTAR r3, fantasma
                 """;
 
         try {
+            //1. Lexico
             AnalizadorLexicoJFlex lexer = new AnalizadorLexicoJFlex(new StringReader(texto));
             List<Token> tokens = new ArrayList<>();
             Token t;
@@ -40,6 +46,7 @@ public class PruebaJFlex {
                 tokens.add(t);
             } while (!t.getTipo().equals("EOF"));
 
+            //2. Sintactico
             Parser parser = new Parser(tokens);
             Programa programa = parser.programa();
 
@@ -49,15 +56,13 @@ public class PruebaJFlex {
                     System.out.println("  " + e.getEncontrado() + " | esperado: " + e.getEsperado()
                             + " | " + e.getFila() + "," + e.getColumna()));
 
-            System.out.println("Directivas: " + programa.getDirectivas().size());
-            System.out.println("Agentes: " + programa.getAgentes().size());
-            if (!programa.getAgentes().isEmpty()) {
-                Agente ag = programa.getAgentes().get(0);
-                System.out.println("Variables: " + ag.getVariables().size());
-                System.out.println("Comandos: " + ag.getComandos().size());
-            }
-            System.out.println("Ejecuciones: " + programa.getEjecuciones().size());
-            System.out.println("Exportaciones: " + programa.getExportaciones().size());
+            //3. Semantico
+            AnalizadorSemantico sem = new AnalizadorSemantico(programa);
+            sem.analizar();
+            System.out.println("Errores semanticos: " + sem.getErrores().size());
+            sem.getErrores().forEach(e ->
+                    System.out.println("  " + e.getDescripcion() + " | linea " + e.getFila()));
+            System.out.println("Simbolos: " + sem.getTabla().getSimbolos().size());
         } catch (java.io.IOException ex) {
             ex.printStackTrace();
         }
