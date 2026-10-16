@@ -78,7 +78,7 @@ public class Parser {
             pos++;
         }
     }
-    
+
     //<unidad> -> ID | ε
     //Despues de un numero puede venir una palabra que lo describe ("100 palabras").
     //Si el token actual es ID la consume; si no, es la produccion vacia.
@@ -140,7 +140,7 @@ public class Parser {
             masTerminos(e);
         }
     }
-    
+
     //<conectores> -> CONECTOR <expresion> <conectores> | ε
     //Acumula las parejas (palabra, argumento) en la lista que recibe.
     private void conectores(List<Conector> lista) {
@@ -170,7 +170,7 @@ public class Parser {
         }
         return c;
     }
-    
+
     //<contexto> -> CONTEXTO IGUAL CADENA
     private String contexto() {
         esperar(TipoToken.CONTEXTO);
@@ -179,30 +179,43 @@ public class Parser {
     }
 
     //<variables> -> VARIABLE ID IGUAL <expresion> <variables> | ε
-    //Cero o mas declaraciones: si el token actual es VARIABLE sigue; si no, es ε.
+    //Cero o mas declaraciones. Si una falla, se recupera y se sigue con la siguiente.
     private void variables(Agente a) {
         if (es(TipoToken.VARIABLE)) {
-            avanzar();
-            Token nombre = esperar(TipoToken.ID);
-            esperar(TipoToken.IGUAL);
-            Expresion valor = expresion();
-            a.agregarVariable(new Variable(nombre.getLexema(), valor,
-                    nombre.getFila(), nombre.getColumna()));
+            try {
+                avanzar();
+                Token nombre = esperar(TipoToken.ID);
+                esperar(TipoToken.IGUAL);
+                Expresion valor = expresion();
+                a.agregarVariable(new Variable(nombre.getLexema(), valor,
+                        nombre.getFila(), nombre.getColumna()));
+            } catch (ExcepcionSintactica e) {
+                sincronizar();
+            }
             variables(a);
+        }
+    }
+
+    //Un intento de parsear un comando; si falla, se recupera y el agente sigue
+    private void comandoSeguro(Agente a) {
+        try {
+            a.agregarComando(comando());
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
         }
     }
 
     //<comandos> -> <comando> <mas_comandos>
     //Al menos un comando: no hay alternativa vacia, comando() exige COMANDO_IA.
     private void comandos(Agente a) {
-        a.agregarComando(comando());
+        comandoSeguro(a);
         masComandos(a);
     }
 
     //<mas_comandos> -> <comando> <mas_comandos> | ε
     private void masComandos(Agente a) {
         if (es(TipoToken.COMANDO_IA)) {
-            a.agregarComando(comando());
+            comandoSeguro(a);
             masComandos(a);
         }
     }
@@ -214,62 +227,99 @@ public class Parser {
         esperar(TipoToken.LLAVE_A);
 
         Agente a = new Agente(nombre.getLexema(), nombre.getFila());
-        a.setContexto(contexto());
+        try {
+            a.setContexto(contexto());
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
+        }
         variables(a);
         comandos(a);
 
-        esperar(TipoToken.LLAVE_C);
+        try {
+            esperar(TipoToken.LLAVE_C);
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
+            if (es(TipoToken.LLAVE_C)) {
+                avanzar(); //la llave que cierra el agente tambien se consume
+            }
+        }
         return a;
     }
-    
+
     //<directivas> -> DIRECTIVA CADENA <directivas> | ε
     private void directivas(Programa p) {
         if (es(TipoToken.DIRECTIVA)) {
-            Token d = avanzar();
-            Token valor = esperar(TipoToken.CADENA);
-            p.agregarDirectiva(new Directiva(d.getLexema(), valor.getLexema(), d.getFila()));
+            try {
+                Token d = avanzar();
+                Token valor = esperar(TipoToken.CADENA);
+                p.agregarDirectiva(new Directiva(d.getLexema(), valor.getLexema(), d.getFila()));
+            } catch (ExcepcionSintactica e) {
+                sincronizar();
+            }
             directivas(p);
+        }
+    }
+
+    //Un intento de parsear un agente; si falla, se recupera y el programa sigue
+    private void agenteSeguro(Programa p) {
+        try {
+            p.agregarAgente(agente());
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
+            if (es(TipoToken.LLAVE_C)) {
+                avanzar();
+            }
         }
     }
 
     //<agentes> -> <agente> <mas_agentes>   (al menos un agente)
     private void agentes(Programa p) {
-        p.agregarAgente(agente());
+        agenteSeguro(p);
         masAgentes(p);
     }
 
     //<mas_agentes> -> <agente> <mas_agentes> | ε
     private void masAgentes(Programa p) {
         if (es(TipoToken.AGENTE)) {
-            p.agregarAgente(agente());
+            agenteSeguro(p);
             masAgentes(p);
+        }
+    }
+
+    private void ejecucionSegura(Programa p) {
+        try {
+            esperar(TipoToken.EJECUTAR);
+            Token id = esperar(TipoToken.ID);
+            p.agregarEjecucion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
         }
     }
 
     //<ejecuciones> -> EJECUTAR ID <mas_ejecuciones>   (al menos una)
     private void ejecuciones(Programa p) {
-        esperar(TipoToken.EJECUTAR);
-        Token id = esperar(TipoToken.ID);
-        p.agregarEjecucion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+        ejecucionSegura(p);
         masEjecuciones(p);
     }
 
     //<mas_ejecuciones> -> EJECUTAR ID <mas_ejecuciones> | ε
     private void masEjecuciones(Programa p) {
         if (es(TipoToken.EJECUTAR)) {
-            avanzar();
-            Token id = esperar(TipoToken.ID);
-            p.agregarEjecucion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+            ejecucionSegura(p);
             masEjecuciones(p);
         }
     }
 
     //<exportar> -> EXPORTAR ID <mas_ids>   (exactamente un EXPORTAR)
     private void exportar(Programa p) {
-        esperar(TipoToken.EXPORTAR);
-        Token id = esperar(TipoToken.ID);
-        p.agregarExportacion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
-        masIds(p);
+        try {
+            esperar(TipoToken.EXPORTAR);
+            Token id = esperar(TipoToken.ID);
+            p.agregarExportacion(new Referencia(id.getLexema(), id.getFila(), id.getColumna()));
+            masIds(p);
+        } catch (ExcepcionSintactica e) {
+            sincronizar();
+        }
     }
 
     //<mas_ids> -> COMA ID <mas_ids> | ε
@@ -289,7 +339,9 @@ public class Parser {
         agentes(p);
         ejecuciones(p);
         exportar(p);
-        esperar(TipoToken.EOF);
+        if (!es(TipoToken.EOF)) {
+            reportar("EOF"); //quedaron tokens sueltos despues del EXPORTAR
+        }
         return p;
     }
 
