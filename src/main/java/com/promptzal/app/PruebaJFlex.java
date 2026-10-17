@@ -6,6 +6,7 @@ package com.promptzal.app;
 
 import com.promptzal.ast.Agente;
 import com.promptzal.ast.Programa;
+import com.promptzal.generadores.GeneradorPromptzal;
 import com.promptzal.logica.AnalizadorLexicoJFlex;
 import com.promptzal.logica.AnalizadorSemantico;
 import com.promptzal.logica.Parser;
@@ -20,21 +21,19 @@ import java.util.List;
 public class PruebaJFlex {
     public static void main(String[] args) {
         String texto = """
-                AGENTE a {
-                    contexto = "c"
-                    variable v = "x"
-                    PREGUNTAR "p" SOBRE zzz -> r1
-                    GENERAR codigo DESDE v -> r2
-                    RESUMIR r1 EN 100 palabras -> r3
-                }
-                AGENTE a {
-                    contexto = "c"
-                    PREGUNTAR "p" -> r
-                }
-                EJECUTAR a
-                EJECUTAR b
-                EXPORTAR r3, fantasma
-                """;
+            @modelo "claude-sonnet-4-6"
+            @rol "analista de datos"
+            @formato "markdown"
+            // Agente que prepara el analisis de un archivo de ventas
+            AGENTE analista {
+                contexto = "Eres un analista de datos experto"
+                variable ventas = CARGAR("ventas.csv")
+                PREGUNTAR "Cuales son las 3 tendencias principales?" SOBRE ventas -> tendencias
+                RESUMIR tendencias EN 100 palabras -> resumen
+            }
+            EJECUTAR analista
+            EXPORTAR resumen
+            """;
 
         try {
             //1. Lexico
@@ -63,6 +62,9 @@ public class PruebaJFlex {
             sem.getErrores().forEach(e ->
                     System.out.println("  " + e.getDescripcion() + " | linea " + e.getFila()));
             System.out.println("Simbolos: " + sem.getTabla().getSimbolos().size());
+            //4. Generacion del promptzal
+            System.out.println();
+            System.out.println(new GeneradorPromptzal().generar(programa));
         } catch (java.io.IOException ex) {
             ex.printStackTrace();
         }
