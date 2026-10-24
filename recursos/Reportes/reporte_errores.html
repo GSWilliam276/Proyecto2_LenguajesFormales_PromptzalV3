@@ -1,17 +1,1 @@
-<html>
-<head>
-<style>
-body { font-family: Consolas, monospace; background-color: #000000; color: #D97757; }
-h1 { color: #D97757; text-align: center; }
-table { width: 90%; margin: auto; border-collapse: collapse; }
-th { background-color: #D97757; color: #000000; padding: 8px; }
-td { padding: 8px; border-bottom: 1px solid #333333; text-align: center; }
-tr:nth-child(even) { background-color: #141414; }
-p { text-align: center; font-size: 18px; color: #4CAF50; }
-</style>
-</head>
-<body>
-<h1>Reporte de Errores Lexicos - PromptZal</h1>
-<p>No se encontraron errores lexicos.</p>
-</body>
-</html>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte de errores</title><style>body{background:#000;color:#eee;font-family:Consolas,monospace;margin:30px}h1,h2{color:#D97757}table{border-collapse:collapse;width:100%}th{background:#D97757;color:#000;padding:8px;text-align:left}td{border-bottom:1px solid #333;padding:6px 8px}tr.lexico td{color:#ff453a}tr.sintactico td{color:#ffb000}tr.semantico td{color:#aa96ff}.ok{color:#50fa7b;font-size:1.2em}pre{font-size:15px;line-height:1.5}</style></head><body><h1>Reporte de errores</h1><p>Total de errores: 4</p><table><tr><th>Tipo</th><th>Descripción</th><th>Token encontrado</th><th>Token esperado</th><th>Fila</th><th>Columna</th></tr><tr class="lexico"><td>Léxico</td><td>Cadena sin cerrar ('')</td><td>-</td><td>-</td><td>1</td><td>3</td></tr><tr class="lexico"><td>Léxico</td><td>Cadena sin cerrar ('')</td><td>-</td><td>-</td><td>14</td><td>15</td></tr><tr class="sintactico"><td>Sintáctico</td><td>Estructura inválida</td><td>CADENA ()</td><td>AGENTE</td><td>1</td><td>1</td></tr><tr class="sintactico"><td>Sintáctico</td><td>Estructura inválida</td><td>CADENA ()</td><td>EOF</td><td>14</td><td>13</td></tr></table></body></html>

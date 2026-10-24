@@ -10,7 +10,7 @@ import com.promptzal.excepciones.ExcepcionArchivoNoEncontrado;
 import com.promptzal.excepciones.ExcepcionGraphvizNoDisponible;
 import com.promptzal.generadores.GeneradorAFD;
 import com.promptzal.generadores.GeneradorPromptzal;
-import com.promptzal.generadores.GeneradorReporte;
+import com.promptzal.generadores.GeneradorReporteCompilador;
 import com.promptzal.logica.AnalizadorLexicoJFlex;
 import com.promptzal.logica.AnalizadorSemantico;
 import com.promptzal.logica.Parser;
@@ -38,7 +38,7 @@ public class ControladorAnalisis {
     private String promptzal = "";
 
     private final GeneradorPromptzal generadorPromptzal = new GeneradorPromptzal();
-    private final GeneradorReporte generadorReporte = new GeneradorReporte();
+    private final GeneradorReporteCompilador reportes = new GeneradorReporteCompilador();
     private final GeneradorAFD generadorAFD = new GeneradorAFD();
     private final GestorArchivos gestorArchivos = new GestorArchivos();
 
@@ -118,20 +118,20 @@ public class ControladorAnalisis {
         return filas;
     }
 
-    //--- Puentes: la vista actual sigue funcionando mientras se actualiza ---
-    public void analizarContenido(String contenido) {
-        compilar(contenido);
-    }
-
-    public List<ErrorLexico> getErrores() {
-        return erroresLexicos;
-    }
-
     //--- Reportes y archivos ---
+
+    //Los tres reportes salen de los mismos datos de la ultima compilacion
     public void generarReportes(String carpetaSalida) {
-        generadorReporte.generarReporteTokens(getTokens(), carpetaSalida + "/reporte_tokens.html");
-        generadorReporte.generarReporteErrores(erroresLexicos, carpetaSalida + "/reporte_errores.html");
-        generadorReporte.generarReporteEstadisticas(getTokens(), erroresLexicos, carpetaSalida + "/reporte_estadisticas.html");
+        //La imagen va primero porque el HTML del AST la incluye
+        try {
+            reportes.generarImagenAST(programa, carpetaSalida + "/ast.dot", carpetaSalida + "/ast.png");
+        } catch (ExcepcionGraphvizNoDisponible ex) {
+            //Sin Graphviz el reporte del AST sale solo con el texto
+        }
+        reportes.generarReporteErrores(erroresLexicos, erroresSintacticos, erroresSemanticos,
+                carpetaSalida + "/reporte_errores.html");
+        reportes.generarReporteSimbolos(tabla, carpetaSalida + "/reporte_simbolos.html");
+        reportes.generarReporteAST(programa, carpetaSalida + "/reporte_ast.html");
     }
 
     public void generarAFD(String carpetaSalida) throws ExcepcionGraphvizNoDisponible {
