@@ -6,7 +6,6 @@ package com.promptzal.vista;
 
 import com.promptzal.controlador.ControladorAnalisis;
 import com.promptzal.excepciones.ExcepcionArchivoNoEncontrado;
-import com.promptzal.excepciones.ExcepcionGraphvizNoDisponible;
 import com.promptzal.modelo.Simbolo;
 import com.promptzal.modelo.Token;
 import javax.swing.*;
@@ -14,7 +13,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.File;
 import java.util.function.BiFunction;
 /**
  *
@@ -42,6 +40,19 @@ public class VentanaPrincipal extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 780);
         setLocationRelativeTo(null);
+
+        //Las pestañas usan los colores del tema en vez de los grises por defecto.
+        //Va antes de crear los paneles porque Swing lee estos valores al construir cada componente.
+        UIManager.put("TabbedPane.contentAreaColor", Colores.FONDO_PRINCIPAL);
+        UIManager.put("TabbedPane.background", Colores.FONDO_PRINCIPAL);
+        UIManager.put("TabbedPane.selected", Colores.FONDO_PANEL);
+        UIManager.put("TabbedPane.light", Colores.FONDO_PRINCIPAL);
+        UIManager.put("TabbedPane.highlight", Colores.NARANJA_BORDE);
+        UIManager.put("TabbedPane.shadow", Colores.NARANJA_BORDE);
+        UIManager.put("TabbedPane.darkShadow", Colores.NARANJA_BORDE);
+        UIManager.put("TabbedPane.borderHightlightColor", Colores.NARANJA_BORDE);
+        UIManager.put("TabbedPane.focus", Colores.NARANJA);
+        UIManager.put("TabbedPane.contentBorderInsets", new Insets(1, 0, 0, 0));
 
         cardLayout = new CardLayout();
         panelContenedor = new JPanel(cardLayout);
@@ -128,7 +139,8 @@ public class VentanaPrincipal extends JFrame {
         division.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
         panel.add(division, BorderLayout.CENTER);
 
-        etiquetaEstado = new JLabel("Listo. Escribe un programa .pz y presiona COMPILAR.");
+        //Barra de estado: aqui se muestra el resultado de cada compilacion
+        etiquetaEstado = new JLabel("Sin compilar todavía.");
         etiquetaEstado.setFont(new Font("Consolas", Font.PLAIN, 13));
         etiquetaEstado.setForeground(Colores.TEXTO_SECUNDARIO);
         etiquetaEstado.setBorder(BorderFactory.createEmptyBorder(0, 12, 6, 12));
@@ -170,10 +182,6 @@ public class VentanaPrincipal extends JFrame {
         estilizarBoton(reportes);
         reportes.addActionListener(e -> generarReportes());
 
-        JButton afd = new JButton("[ AFD ]");
-        estilizarBoton(afd);
-        afd.addActionListener(e -> generarAFD());
-
         JButton inicio = new JButton("[ INICIO ]");
         estilizarBoton(inicio);
         inicio.addActionListener(e -> cardLayout.show(panelContenedor, PANTALLA_BIENVENIDA));
@@ -183,7 +191,6 @@ public class VentanaPrincipal extends JFrame {
         barra.add(compilar);
         barra.add(guardarPrompt);
         barra.add(reportes);
-        barra.add(afd);
         barra.add(inicio);
         return barra;
     }
@@ -192,11 +199,25 @@ public class VentanaPrincipal extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Colores.FONDO_PRINCIPAL);
 
+        //Arriba: la instruccion (mas grande) y debajo el titulo del editor
+        JLabel instruccion = new JLabel("Escribe un programa .pz y presiona COMPILAR");
+        instruccion.setFont(new Font("Consolas", Font.BOLD, 18));
+        instruccion.setForeground(Colores.TEXTO_SECUNDARIO);
+        instruccion.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JLabel titulo = new JLabel("Editor (.pz)");
         titulo.setFont(new Font("Consolas", Font.BOLD, 14));
         titulo.setForeground(Colores.NARANJA);
-        titulo.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        panel.add(titulo, BorderLayout.NORTH);
+        titulo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel encabezado = new JPanel();
+        encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
+        encabezado.setBackground(Colores.FONDO_PRINCIPAL);
+        encabezado.setBorder(BorderFactory.createEmptyBorder(4, 4, 6, 4));
+        encabezado.add(instruccion);
+        encabezado.add(Box.createRigidArea(new Dimension(0, 4)));
+        encabezado.add(titulo);
+        panel.add(encabezado, BorderLayout.NORTH);
 
         areaEditor = new JTextArea();
         areaEditor.setBackground(Colores.FONDO_PANEL);
@@ -226,6 +247,7 @@ public class VentanaPrincipal extends JFrame {
         modeloTokens = modeloSoloLectura("No.", "Lexema", "Tipo", "Fila", "Columna");
         JTable tablaTokens = new JTable(modeloTokens);
         estilizarTabla(tablaTokens);
+        anchos(tablaTokens, 60, 450, 160, 70, 80);
         tablaTokens.setDefaultRenderer(Object.class, new RenderizadorColor(
                 (t, fila) -> Colores.paraToken(String.valueOf(t.getValueAt(fila, 2)))));
 
@@ -233,6 +255,7 @@ public class VentanaPrincipal extends JFrame {
         modeloErrores = modeloSoloLectura("Tipo", "Descripción", "Fila", "Columna");
         JTable tablaErrores = new JTable(modeloErrores);
         estilizarTabla(tablaErrores);
+        anchos(tablaErrores, 110, 900, 70, 80);
         tablaErrores.setDefaultRenderer(Object.class, new RenderizadorColor(
                 (t, fila) -> Colores.paraError(String.valueOf(t.getValueAt(fila, 0)))));
 
@@ -240,6 +263,7 @@ public class VentanaPrincipal extends JFrame {
         modeloSimbolos = modeloSoloLectura("Nombre", "Tipo", "Ámbito", "Línea");
         JTable tablaSimbolos = new JTable(modeloSimbolos);
         estilizarTabla(tablaSimbolos);
+        anchos(tablaSimbolos, 250, 250, 200, 80);
         tablaSimbolos.setDefaultRenderer(Object.class, new RenderizadorColor((t, fila) -> {
             String tipo = String.valueOf(t.getValueAt(fila, 1));
             if (tipo.equals("Agente")) {
@@ -283,8 +307,15 @@ public class VentanaPrincipal extends JFrame {
         tabla.getTableHeader().setBackground(Colores.NARANJA);
         tabla.getTableHeader().setForeground(Color.BLACK);
         tabla.getTableHeader().setFont(new Font("Consolas", Font.BOLD, 13));
-        tabla.setFont(new Font("Consolas", Font.PLAIN, 13));
+        tabla.setFont(new Font("Consolas", Font.BOLD, 13));
         tabla.setRowHeight(22);
+    }
+
+    //Fija el ancho preferido de cada columna (en pixeles)
+    private void anchos(JTable tabla, int... valores) {
+        for (int i = 0; i < valores.length; i++) {
+            tabla.getColumnModel().getColumn(i).setPreferredWidth(valores[i]);
+        }
     }
 
     private void estilizarBoton(JButton boton) {
@@ -420,15 +451,5 @@ public class VentanaPrincipal extends JFrame {
         controlador.generarReportes("recursos/reportes");
         JOptionPane.showMessageDialog(this, "Reportes generados en recursos/reportes/",
                 "Listo", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void generarAFD() {
-        try {
-            controlador.generarAFD("recursos/afd");
-            JOptionPane.showMessageDialog(this, "Imagen del AFD generada en recursos/afd/",
-                    "Listo", JOptionPane.INFORMATION_MESSAGE);
-        } catch (ExcepcionGraphvizNoDisponible ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
     }
 }
