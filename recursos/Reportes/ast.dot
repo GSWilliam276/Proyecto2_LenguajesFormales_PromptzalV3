@@ -1,0 +1,38 @@
+digraph AST {
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+    edge [color="#666666"];
+
+    n0 [label="Programa", fillcolor="#F4B393"];
+    n1 [label="Agente\nanalista", fillcolor="#FFCBA4"];
+    n0 -> n1;
+    n2 [label="contexto\n\"Eres un analista de datos experto\"", fillcolor="#E8E8E8"];
+    n1 -> n2;
+    n3 [label="variable\nventas", fillcolor="#E8E8E8"];
+    n1 -> n3;
+    n4 [label="CARGAR(\"ventas.csv\")", fillcolor="#FFFFFF"];
+    n3 -> n4;
+    n5 [label="PREGUNTAR", fillcolor="#A8D0FF"];
+    n1 -> n5;
+    n6 [label="\"Cuales son las 3 tendencias principales?\"", fillcolor="#FFFFFF"];
+    n5 -> n6;
+    n7 [label="SOBRE", fillcolor="#FFE9A0"];
+    n5 -> n7;
+    n8 [label="ventas", fillcolor="#FFFFFF"];
+    n7 -> n8;
+    n9 [label="-> tendencias", fillcolor="#B8F0C0"];
+    n5 -> n9;
+    n10 [label="RESUMIR", fillcolor="#A8D0FF"];
+    n1 -> n10;
+    n11 [label="tendencias", fillcolor="#FFFFFF"];
+    n10 -> n11;
+    n12 [label="EN", fillcolor="#FFE9A0"];
+    n10 -> n12;
+    n13 [label="100 palabras", fillcolor="#FFFFFF"];
+    n12 -> n13;
+    n14 [label="-> resumen", fillcolor="#B8F0C0"];
+    n10 -> n14;
+    n15 [label="EJECUTAR\nanalista", fillcolor="#FFCBA4"];
+    n0 -> n15;
+    n16 [label="EXPORTAR\nresumen", fillcolor="#B8F0C0"];
+    n0 -> n16;
+}
