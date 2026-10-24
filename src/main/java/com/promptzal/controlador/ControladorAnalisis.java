@@ -132,6 +132,9 @@ public class ControladorAnalisis {
                 carpetaSalida + "/reporte_errores.html");
         reportes.generarReporteSimbolos(tabla, carpetaSalida + "/reporte_simbolos.html");
         reportes.generarReporteAST(programa, carpetaSalida + "/reporte_ast.html");
+        reportes.generarReporteTokens(getTokens(), carpetaSalida + "/reporte_tokens.html");
+        reportes.generarReporteEstadisticas(getTokens(), erroresLexicos, erroresSintacticos,
+                erroresSemanticos, programa, tabla, carpetaSalida + "/reporte_estadisticas.html");
     }
 
     public void generarAFD(String carpetaSalida) throws ExcepcionGraphvizNoDisponible {

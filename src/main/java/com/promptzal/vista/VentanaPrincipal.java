@@ -6,6 +6,7 @@ package com.promptzal.vista;
 
 import com.promptzal.controlador.ControladorAnalisis;
 import com.promptzal.excepciones.ExcepcionArchivoNoEncontrado;
+import com.promptzal.excepciones.ExcepcionGraphvizNoDisponible;
 import com.promptzal.modelo.Simbolo;
 import com.promptzal.modelo.Token;
 import javax.swing.*;
@@ -182,6 +183,10 @@ public class VentanaPrincipal extends JFrame {
         estilizarBoton(reportes);
         reportes.addActionListener(e -> generarReportes());
 
+        JButton afd = new JButton("[ AFD ]");
+        estilizarBoton(afd);
+        afd.addActionListener(e -> generarAFD());
+
         JButton inicio = new JButton("[ INICIO ]");
         estilizarBoton(inicio);
         inicio.addActionListener(e -> cardLayout.show(panelContenedor, PANTALLA_BIENVENIDA));
@@ -191,6 +196,7 @@ public class VentanaPrincipal extends JFrame {
         barra.add(compilar);
         barra.add(guardarPrompt);
         barra.add(reportes);
+        barra.add(afd);
         barra.add(inicio);
         return barra;
     }
@@ -451,5 +457,15 @@ public class VentanaPrincipal extends JFrame {
         controlador.generarReportes("recursos/reportes");
         JOptionPane.showMessageDialog(this, "Reportes generados en recursos/reportes/",
                 "Listo", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void generarAFD() {
+        try {
+            controlador.generarAFD("recursos/afd");
+            JOptionPane.showMessageDialog(this, "Imagen del AFD generada en recursos/afd/",
+                    "Listo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (ExcepcionGraphvizNoDisponible ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

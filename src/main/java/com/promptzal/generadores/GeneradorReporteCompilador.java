@@ -17,10 +17,16 @@ import com.promptzal.modelo.ErrorLexico;
 import com.promptzal.modelo.ErrorSemantico;
 import com.promptzal.modelo.ErrorSintactico;
 import com.promptzal.modelo.Simbolo;
+import com.promptzal.modelo.Token;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import com.promptzal.modelo.Token;
+import com.promptzal.vista.Colores;
+import java.awt.Color;
+import java.util.Map;
+import java.util.TreeMap;
 /**
  *
  * @author eduar
@@ -63,7 +69,7 @@ public class GeneradorReporteCompilador {
           .append(columna).append("</td></tr>");
     }
 
-    //Tabla de simbolos
+    //Tabla de simbolos: cada fila con el color de su tipo, igual que en el IDE
     public boolean generarReporteSimbolos(TablaSimbolos tabla, String ruta) {
         StringBuilder cuerpo = new StringBuilder();
         if (tabla.getSimbolos().isEmpty()) {
@@ -71,7 +77,8 @@ public class GeneradorReporteCompilador {
         } else {
             cuerpo.append("<table><tr><th>Nombre</th><th>Tipo</th><th>Ámbito</th><th>Línea</th></tr>");
             for (Simbolo s : tabla.getSimbolos()) {
-                cuerpo.append("<tr><td>").append(esc(s.getNombre())).append("</td><td>")
+                cuerpo.append("<tr style=\"color:").append(hex(colorSimbolo(s))).append("\"><td>")
+                      .append(esc(s.getNombre())).append("</td><td>")
                       .append(s.getTipoTexto()).append("</td><td>").append(esc(s.getAmbito()))
                       .append("</td><td>").append(s.getLinea()).append("</td></tr>");
             }
@@ -150,6 +157,21 @@ public class GeneradorReporteCompilador {
         } catch (IOException ex) {
             return false;
         }
+    }
+    
+    //Tokens: cada fila con el color de su categoria, igual que en el IDE
+    public boolean generarReporteTokens(List<Token> tokens, String ruta) {
+        StringBuilder cuerpo = new StringBuilder();
+        cuerpo.append("<p>Total de tokens: ").append(tokens.size()).append("</p>");
+        cuerpo.append("<table><tr><th>No.</th><th>Lexema</th><th>Tipo</th><th>Fila</th><th>Columna</th></tr>");
+        for (Token t : tokens) {
+            cuerpo.append("<tr style=\"color:").append(hex(Colores.paraToken(t.getTipo()))).append("\"><td>")
+                  .append(t.getNumero()).append("</td><td>").append(esc(t.getLexema())).append("</td><td>")
+                  .append(t.getTipo()).append("</td><td>").append(t.getFila()).append("</td><td>")
+                  .append(t.getColumna()).append("</td></tr>");
+        }
+        cuerpo.append("</table>");
+        return escribir(ruta, pagina("Reporte de tokens", cuerpo.toString()));
     }
 
     //AST como diagrama (Graphviz)
@@ -230,5 +252,68 @@ public class GeneradorReporteCompilador {
             Thread.currentThread().interrupt();
             return false;
         }
+    }
+    
+        private String hex(Color c) {
+        return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+    }
+
+    //Mismos colores que la tabla de simbolos del IDE
+    private Color colorSimbolo(Simbolo s) {
+        switch (s.getTipo()) {
+            case AGENTE:   return Colores.TOKEN_ESTRUCTURA;
+            case VARIABLE: return Colores.TOKEN_ID;
+            default:       return Colores.TOKEN_CONECTOR;
+        }
+    }
+
+    //----------------------------------------------------------- Estadisticas
+    public boolean generarReporteEstadisticas(List<Token> tokens, List<ErrorLexico> lexicos,
+            List<ErrorSintactico> sintacticos, List<ErrorSemantico> semanticos,
+            Programa programa, TablaSimbolos tabla, String ruta) {
+        StringBuilder cuerpo = new StringBuilder();
+
+        //Tokens por tipo
+        Map<String, Integer> porTipo = new TreeMap<>();
+        for (Token t : tokens) {
+            porTipo.merge(t.getTipo(), 1, Integer::sum);
+        }
+        cuerpo.append("<h2>Tokens por tipo</h2><table><tr><th>Tipo</th><th>Cantidad</th></tr>");
+        for (Map.Entry<String, Integer> e : porTipo.entrySet()) {
+            dato(cuerpo, e.getKey(), e.getValue(), Colores.paraToken(e.getKey()));
+        }
+        dato(cuerpo, "TOTAL", tokens.size(), Colores.TEXTO_EDITOR);
+        cuerpo.append("</table>");
+
+        //Errores por tipo
+        cuerpo.append("<h2>Errores por tipo</h2><table><tr><th>Tipo</th><th>Cantidad</th></tr>");
+        dato(cuerpo, "Léxicos", lexicos.size(), Colores.ERROR_LEXICO);
+        dato(cuerpo, "Sintácticos", sintacticos.size(), Colores.ERROR_SINTACTICO);
+        dato(cuerpo, "Semánticos", semanticos.size(), Colores.ERROR_SEMANTICO);
+        cuerpo.append("</table>");
+
+        //Contenido del programa
+        int variables = 0;
+        int comandos = 0;
+        for (Agente a : programa.getAgentes()) {
+            variables += a.getVariables().size();
+            comandos += a.getComandos().size();
+        }
+        cuerpo.append("<h2>Programa</h2><table><tr><th>Elemento</th><th>Cantidad</th></tr>");
+        dato(cuerpo, "Directivas", programa.getDirectivas().size(), Colores.TOKEN_DIRECTIVA);
+        dato(cuerpo, "Agentes", programa.getAgentes().size(), Colores.TOKEN_ESTRUCTURA);
+        dato(cuerpo, "Variables declaradas", variables, Colores.TOKEN_ID);
+        dato(cuerpo, "Comandos", comandos, Colores.TOKEN_COMANDO);
+        dato(cuerpo, "Ejecuciones", programa.getEjecuciones().size(), Colores.TOKEN_ESTRUCTURA);
+        dato(cuerpo, "Exportaciones", programa.getExportaciones().size(), Colores.TOKEN_ESTRUCTURA);
+        dato(cuerpo, "Símbolos en la tabla", tabla.getSimbolos().size(), Colores.TOKEN_CONECTOR);
+        cuerpo.append("</table>");
+
+        return escribir(ruta, pagina("Reporte de estadísticas", cuerpo.toString()));
+    }
+
+    private void dato(StringBuilder sb, String nombre, int valor, Color color) {
+        sb.append("<tr style=\"color:").append(hex(color)).append("\"><td>").append(esc(nombre))
+          .append("</td><td>").append(valor).append("</td></tr>");
     }
 }
