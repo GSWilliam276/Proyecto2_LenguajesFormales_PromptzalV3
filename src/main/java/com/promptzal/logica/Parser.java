@@ -227,6 +227,7 @@ public class Parser {
         esperar(TipoToken.LLAVE_A);
 
         Agente a = new Agente(nombre.getLexema(), nombre.getFila());
+        int erroresAntes = errores.size();
         try {
             a.setContexto(contexto());
         } catch (ExcepcionSintactica e) {
@@ -234,6 +235,20 @@ public class Parser {
         }
         variables(a);
         comandos(a);
+
+        //Recuperacion: tras un error dentro del agente pueden quedar variables o comandos
+        //sueltos; se siguen analizando para no abandonar el resto del programa.
+        //Cada vuelta consume al menos un token, asi que el ciclo termina.
+        while (es(TipoToken.VARIABLE) || es(TipoToken.COMANDO_IA)) {
+            if (errores.size() == erroresAntes) {
+                reportar("LLAVE_C"); //no habia error previo: el orden del agente es invalido
+            }
+            variables(a);
+            if (es(TipoToken.COMANDO_IA)) {
+                comandoSeguro(a);
+                masComandos(a);
+            }
+        }
 
         try {
             esperar(TipoToken.LLAVE_C);
@@ -245,7 +260,7 @@ public class Parser {
         }
         return a;
     }
-
+        
     //<directivas> -> DIRECTIVA CADENA <directivas> | ε
     private void directivas(Programa p) {
         if (es(TipoToken.DIRECTIVA)) {
