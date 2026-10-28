@@ -1,0 +1,24 @@
+@modelo "claude-sonnet-4-6"
+@rol "asistente de atencion al cliente"
+@formato "lista"
+
+// Procesa las opiniones de los clientes de una tienda
+AGENTE soporte {
+    contexto = "Eres un analista de opiniones de clientes"
+    variable opiniones = CARGAR("opiniones.txt")
+    variable cliente = "Tienda Los Cipreses"
+    CLASIFICAR opiniones EN "positivo, negativo, neutro" -> clasificacion
+    EXTRAER "quejas sobre el envio" DESDE opiniones -> quejas
+    GENERAR respuesta DESDE quejas COMO "correo formal" -> borrador
+    TRADUCIR borrador EN "ingles" -> borrador_en
+    RESUMIR clasificacion EN 50 palabras -> resumen
+}
+
+// Este agente existe pero nadie lo ejecuta, no debe salir en el prompt
+AGENTE auxiliar {
+    contexto = "Agente de relleno"
+    PREGUNTAR "Hola?" -> saludo
+}
+
+EJECUTAR soporte
+EXPORTAR resumen, borrador_en

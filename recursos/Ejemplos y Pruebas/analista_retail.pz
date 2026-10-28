@@ -1,0 +1,17 @@
+@modelo "claude-sonnet-4-6"
+@rol "asistente de analisis de negocio"
+@formato "markdown"
+
+AGENTE analista {
+    contexto = "Eres un analista de datos experto en retail"
+    variable ventas = CARGAR("ventas.csv")
+    variable limite = 150
+    variable umbral = 0.85
+    PREGUNTAR "Cuales son las 3 tendencias principales?" SOBRE ventas -> tendencias
+    ANALIZAR ventas SOBRE "estacionalidad y anomalias" -> hallazgos
+    GENERAR codigo DESDE "grafica de barras de " + tendencias COMO python -> script
+    RESUMIR hallazgos EN limite -> resumen
+}
+
+EJECUTAR analista
+EXPORTAR resumen, script

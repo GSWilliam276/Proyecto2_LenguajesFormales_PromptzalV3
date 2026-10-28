@@ -59,7 +59,7 @@ public class AnalizadorSemantico {
     }
 
     private void analizarComando(Comando c, String ambito) {
-        //Excepcion del enunciado: en GENERAR, si el primer argumento es un ID,
+        //En GENERAR, si el primer argumento es un ID,
         //indica el tipo de contenido a generar ("GENERAR codigo"), no es una variable
         List<Termino> terminos = c.getPrincipal().getTerminos();
         boolean saltarPrimero = c.getTipo().equals("GENERAR")
@@ -67,8 +67,16 @@ public class AnalizadorSemantico {
                 && terminos.get(0).getTipo() == Termino.Tipo.ID;
 
         validarExpresion(c.getPrincipal(), ambito, saltarPrimero);
+
         for (Conector con : c.getConectores()) {
-            validarExpresion(con.getArgumento(), ambito, false);
+            //COMO indica un formato y, en TRADUCIR y CLASIFICAR, EN lleva un idioma o categorias:
+            //son parametros que describen, no variables, asi que no se validan como declaradas
+            boolean parametro = con.getPalabra().equals("COMO")
+                    || (con.getPalabra().equals("EN")
+                        && (c.getTipo().equals("TRADUCIR") || c.getTipo().equals("CLASIFICAR")));
+            if (!parametro) {
+                validarExpresion(con.getArgumento(), ambito, false);
+            }
         }
 
         //El destino de "->" declara la variable, despues de validar lo que el comando usa

@@ -68,8 +68,8 @@ public class Parser {
     //Registra el error con el token encontrado, lo esperado, fila y columna
     private void reportar(String esperado) {
         Token t = actual();
-        errores.add(new ErrorSintactico(t.getTipo() + " (" + t.getLexema() + ")",
-                esperado, t.getFila(), t.getColumna()));
+        String encontrado = t.getLexema().isEmpty() ? t.getTipo() : t.getTipo() + " (" + t.getLexema() + ")";
+        errores.add(new ErrorSintactico(encontrado, esperado, t.getFila(), t.getColumna()));
     }
 
     //Modo panico: descarta tokens hasta uno de sincronizacion

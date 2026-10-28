@@ -171,19 +171,15 @@ public class GeneradorPromptzal {
         return null;
     }
 
-    //Una expresion como texto natural (los terminos unidos con " + ")
+    //Une los terminos con un espacio y normaliza los espacios repetidos
     private String texto(Expresion e) {
         StringBuilder sb = new StringBuilder();
-        List<Termino> ts = e.getTerminos();
-        for (int i = 0; i < ts.size(); i++) {
-            if (i > 0) {
-                sb.append(" + ");
-            }
-            sb.append(termino(ts.get(i)));
+        for (Termino t : e.getTerminos()) {
+            sb.append(termino(t)).append(" ");
         }
-        return sb.toString();
+        return sb.toString().replaceAll("\\s+", " ").trim();
     }
-
+    
     private String termino(Termino t) {
         switch (t.getTipo()) {
             case NUMERO:
