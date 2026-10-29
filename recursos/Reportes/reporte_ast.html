@@ -1,12 +1,16 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Árbol de sintaxis abstracta (AST)</title><style>body{background:#000;color:#eee;font-family:Consolas,monospace;margin:30px}h1,h2{color:#D97757}table{border-collapse:collapse;width:100%}th{background:#D97757;color:#000;padding:8px;text-align:left}td{border-bottom:1px solid #333;padding:6px 8px}tr.lexico td{color:#ff453a}tr.sintactico td{color:#ffb000}tr.semantico td{color:#aa96ff}.ok{color:#50fa7b;font-size:1.2em}pre{font-size:15px;line-height:1.5}</style></head><body><h1>Árbol de sintaxis abstracta (AST)</h1><h2>Diagrama</h2><div style="background:#fff;padding:15px;display:inline-block"><img src="ast.png" alt="AST" onerror="this.parentNode.style.display='none'"></div><h2>Texto con sangrías</h2><pre>Programa
-    - Agente a (línea 1)
-        - Contexto: &quot;c&quot;
-        - Variable t (línea 3)
-            - Valor: &quot;hola&quot;
-        - Comando TRADUCIR (línea 4)
-            - Argumento: t
-            - Conector EN: ingles
-            - Destino: t2
-    - Ejecutar a (línea 6)
-    - Exportar t2 (línea 7)
+    - Directiva @modelo = &quot;claude-3-opus&quot;
+    - Directiva @rol = &quot;agente de pruebas&quot;
+    - Directiva @formato = &quot;markdown&quot;
+    - Agente evaluador (línea 11)
+        - Contexto: &quot;Validando la recuperacion de errores&quot;
+        - Variable pi_roto (línea 15)
+            - Valor: 3.14
+        - Variable peso (línea 16)
+            - Valor: 100 kg
+        - Variable normal (línea 24)
+            - Valor: &quot;El analizador debe leer esto correctamente&quot;
+    - Ejecutar evaluador (línea 30)
+    - Exportar normal (línea 31)
+    - Exportar email (línea 31)
 </pre></body></html>
